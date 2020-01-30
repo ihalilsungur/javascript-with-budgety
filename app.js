@@ -18,6 +18,46 @@ let budgetController = (function () {
         this.description = description;
         this.value = value;
     };
+    /*
+    Burada her gider  ve gelir için oluşturulan nesnelerin  hepsini bir dizinin içinde koymak istedim.
+     */
+  
+
+    let data = {
+        allItems: {
+            exp: [],
+            inc: []
+        },
+        totals: {
+            exp: 0,
+            inc: 0
+        }
+    };
+    return {
+        /* addItem ile ile Expense ve Income gelen değerleri  Expense ve Income nesneleri
+        allItems dizisinin içine eklendik.
+        Burada gelen nesne için Expense ve Income olduğunu gelen type değerine göre
+        hangisi olduğunu anlamaya çalıştık.
+         */
+        addItem: function (type, des, val) {
+            let newItem, id;
+            //[1 2 3 4 5 ] next id=6
+            //[1 2 4 6 8 ], next id = 9
+            //id = last id+1
+            //yeni id oluşturma
+            id = data.allItems[type][data.allItems[type].length - 1].id + 1;
+            //yeni nesne "exp" veya "inc" oluşturma
+            if (type === 'exp') {
+                newItem = new Expense(id, des, val);
+            } else if (type === 'inc') {
+                newItem = new Income(id, des, val);
+            }
+            //yeni oluşturulan newItem data içinde allItems ekleme
+            data.allItems[type].push(newItem);
+            //yeni oluşturulan nesnenin geri döndürülmesi
+            return newItem;
+        }
+    };
 })();
 
 
@@ -82,7 +122,7 @@ let controller = (function (budgetCtrl, UICtrl) {
         console.log(input);
 
         //2.itemleri bütçe denetleyicisine ekle.
-
+        budgetCtrl.addItem(input.type, input.description, input.value);
         //3.Eklenen öğeyi UIController ekle.
 
         //4.Bütçeyi hesapla.
