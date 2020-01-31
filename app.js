@@ -132,6 +132,16 @@ let UIController = (function () {
             //newHtml DOM ekleyelim
             document.querySelector(element).insertAdjacentHTML("beforeend", newHtml);
         },
+
+        clearFields : function(){
+            let fields ,fieldsArr;
+            fields = document.querySelectorAll(DOMStrings.inputDescription +" ,"+ DOMStrings.inputValue);
+            fieldsArr = Array.prototype.slice.call(fields);
+            fieldsArr.forEach(function (current,index,array) {
+             current.value = "";
+            });
+            fieldsArr[0].focus();
+        },
         /*
          DOMStrings nesnemizi controller modülünden erişmek için getDOMStrings değişkenini tanımladık.
          ve geriye DOMStrings nesnesini dönderdik.
@@ -166,9 +176,11 @@ let controller = (function (budgetCtrl, UICtrl) {
         newItem = budgetCtrl.addItem(input.type, input.description, input.value);
         //3.Eklenen öğeyi UIController ekle.
         UICtrl.addListItem(newItem, input.type);
-        //4.Bütçeyi hesapla.
+        //4.alanları temizleme
+        UICtrl.clearFields();
+        //5.Bütçeyi hesapla.
 
-        //5.Bütçeyi UIController arayüzüne gönder.
+        //6.Bütçeyi UIController arayüzüne gönder.
     };
     return {
         init: function () {
