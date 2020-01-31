@@ -22,6 +22,18 @@ let budgetController = (function () {
     Burada her gider  ve gelir için oluşturulan nesnelerin  hepsini bir dizinin içinde koymak istedim.
      */
 
+    /*
+    * toplam gelir ve gider hesaplama fonksiyonu
+    * */
+    let calculateTotal = function (type) {
+        let sum = 0;
+        data.allItems[type].forEach(function (current) {
+            sum += current.value;
+        });
+        /*buradaki toplam gelir ve giderimizi totals nesnesi içindeki exp ve inc değişkenlerine
+        * gönderdik.*/
+        data.totals[type] = sum;
+    };
 
     let data = {
         allItems: {
@@ -31,7 +43,9 @@ let budgetController = (function () {
         totals: {
             exp: 0,
             inc: 0
-        }
+        },
+        budget: 0,
+        percentage: -1
     };
     return {
         /* addItem ile ile Expense ve Income gelen değerleri  Expense ve Income nesneleri
@@ -61,6 +75,31 @@ let budgetController = (function () {
             data.allItems[type].push(newItem);
             //yeni oluşturulan nesnenin geri döndürülmesi
             return newItem;
+        },
+        calculateBudget: function (type) {
+            //toplam expense ve income hesaplama
+            calculateTotal("exp");
+            calculateTotal("inc");
+            // Hesaplanan bütçe  : income - expense
+            data.budget = data.totals.inc - data.totals.exp;
+            /*harcamalarımızın yüzdeliğinin hesaplanması
+             expense = 100 ve income =200 ise 100/200 *100 = %50
+             */
+            if (data.totals.inc > 0) {
+                data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+            } else {
+                data.percentage = -1;
+            }
+
+        },
+
+        getBudget: function () {
+            return {
+                budget: data.budget,
+                totalInc: data.totals.inc,
+                totalExp: data.totals.exp,
+                percentage: data.percentage
+            }
         },
         testing: function () {
             console.log("Data : ", data);
@@ -98,7 +137,7 @@ let UIController = (function () {
             return {
                 type: document.querySelector(DOMStrings.inputType).value,    //.add__type gelecek değerler inc ve exp
                 description: document.querySelector(DOMStrings.inputDescription).value,
-                value: document.querySelector(DOMStrings.inputValue).value,
+                value: parseFloat(document.querySelector(DOMStrings.inputValue).value),
             };
         },
         /*
@@ -133,12 +172,12 @@ let UIController = (function () {
             document.querySelector(element).insertAdjacentHTML("beforeend", newHtml);
         },
 
-        clearFields : function(){
-            let fields ,fieldsArr;
-            fields = document.querySelectorAll(DOMStrings.inputDescription +" ,"+ DOMStrings.inputValue);
+        clearFields: function () {
+            let fields, fieldsArr;
+            fields = document.querySelectorAll(DOMStrings.inputDescription + " ," + DOMStrings.inputValue);
             fieldsArr = Array.prototype.slice.call(fields);
-            fieldsArr.forEach(function (current,index,array) {
-             current.value = "";
+            fieldsArr.forEach(function (current, index, array) {
+                current.value = "";
             });
             fieldsArr[0].focus();
         },
@@ -166,21 +205,38 @@ let controller = (function (budgetCtrl, UICtrl) {
         });
     };
 
+    /*bütçeyi güncelleme metodumuz
+
+     */
+    let updateBudget = function () {
+        //1.Bütçeyi hesapla.
+        budgetCtrl.calculateBudget();
+        //2.hesaplnana bütçeyi geri dönder
+        let budget = budgetCtrl.getBudget();
+        //3.Bütçeyi UIController arayüzüne gönder.
+        console.log(budget);
+    };
+
 
     let ctrlAddItem = function () {
         let input, newItem;
         //1. Girilen değerleri al.
         input = UICtrl.getInput();
+        /*
+        Girilen değerleri kontrol ettik.Yani description ve value değerlerinin boş girilmemesi için gerekli kontrolu
+        yaptım.
+         */
+        if (input.description !== "" && !isNaN(input.value) && input.value > 0) {
+            //2.itemleri bütçe denetleyicisine ekle.
+            newItem = budgetCtrl.addItem(input.type, input.description, input.value);
+            //3.Eklenen öğeyi UIController ekle.
+            UICtrl.addListItem(newItem, input.type);
+            //4.alanları temizleme
+            UICtrl.clearFields();
+            //5. bütçeyi hesapla ve güncelle
+            updateBudget();
+        }
 
-        //2.itemleri bütçe denetleyicisine ekle.
-        newItem = budgetCtrl.addItem(input.type, input.description, input.value);
-        //3.Eklenen öğeyi UIController ekle.
-        UICtrl.addListItem(newItem, input.type);
-        //4.alanları temizleme
-        UICtrl.clearFields();
-        //5.Bütçeyi hesapla.
-
-        //6.Bütçeyi UIController arayüzüne gönder.
     };
     return {
         init: function () {
