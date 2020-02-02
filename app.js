@@ -193,6 +193,22 @@ let UIController = (function () {
         container: ".container",
         expensesPercLabel: ".item__percentage"
     };
+
+    let formatNumber = function (num, type) {
+        let numSplit, int, dec;
+        console.log(num);
+        num = Math.abs(num);//num değerinin mutlak değerin aldık.
+        num = num.toFixed(2);
+        numSplit = num.split(".");
+        int = numSplit[0];
+
+        if (int.length > 3) {
+            int = int.substr(0, int.length - 3) + "." + int.substr(int.length - 3, 3);
+        }
+        dec = numSplit[1];
+        //type === 'exp' ? sign = '-' : sign = '+';
+        return (type === 'exp' ? '-' : '+') + ' ' + int + ',' + dec;
+    };
     return {
         //return içinde yazdığımız kodları aslında  Controller modülünde erişmek için erişime açıyoruz.
         getInput: function () {
@@ -229,7 +245,7 @@ let UIController = (function () {
             //buradaki html string ekranda statik değerlerle değiştirelim
             newHtml = html.replace("%id%", obj.id);
             newHtml = newHtml.replace("%description%", obj.description);
-            newHtml = newHtml.replace("%value%", obj.value);
+            newHtml = newHtml.replace("%value%", formatNumber(obj.value, type));
 
             //newHtml DOM ekleyelim
             document.querySelector(element).insertAdjacentHTML("beforeend", newHtml);
@@ -250,9 +266,13 @@ let UIController = (function () {
             fieldsArr[0].focus();
         },
         displayBudget: function (obj) {
-            document.querySelector(DOMStrings.budgetLabel).textContent = obj.budget;
-            document.querySelector(DOMStrings.incomeLabel).textContent = obj.totalInc;
-            document.querySelector(DOMStrings.expensesLabel).textContent = obj.totalExp;
+            let type;
+
+               obj.budget >= 0 ? type = "inc" : type = "exp";
+
+            document.querySelector(DOMStrings.budgetLabel).textContent = formatNumber(obj.budget,type);
+            document.querySelector(DOMStrings.incomeLabel).textContent = formatNumber(obj.totalInc,type);
+            document.querySelector(DOMStrings.expensesLabel).textContent = formatNumber(obj.totalExp,type);
             if (obj.percentage > 0) {
                 document.querySelector(DOMStrings.percentageLabel).textContent = obj.percentage + " %";
             } else {
@@ -263,14 +283,14 @@ let UIController = (function () {
         displayPercentages: function (percentages) {
             let fields = document.querySelectorAll(DOMStrings.expensesPercLabel);
             let nodeListForEach = function (list, callback) {
-                for (let i = 0; i < list.length ; i++) {
+                for (let i = 0; i < list.length; i++) {
                     callback(list[i], i);
                 }
             };
             nodeListForEach(fields, function (current, index) {
-                if (percentages[index] >0){
+                if (percentages[index] > 0) {
                     current.textContent = percentages[index] + ' %';
-                }else{
+                } else {
                     current.textContent = "---";
                 }
 
@@ -310,6 +330,7 @@ let controller = (function (budgetCtrl, UICtrl) {
         //2.hesaplnana bütçeyi geri dönder
         let budget = budgetCtrl.getBudget();
         //3.Bütçeyi UIController arayüzüne gönder.
+        // UICtrl.displayBudget(budget);
         UICtrl.displayBudget(budget);
     };
 
@@ -320,7 +341,7 @@ let controller = (function (budgetCtrl, UICtrl) {
         //2.budget controllerdan yüzdeleri okuma
         let percentages = budgetCtrl.getPercentages();
         //3.new yüzdeleri ara yüzde güncelleme
-         UICtrl.displayPercentages(percentages);
+        UICtrl.displayPercentages(percentages);
     };
 
     let ctrlAddItem = function () {
