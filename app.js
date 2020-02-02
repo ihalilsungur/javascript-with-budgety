@@ -9,6 +9,19 @@ let budgetController = (function () {
         this.id = id;
         this.description = description;
         this.value = value;
+        this.percentage = -1;
+    };
+
+    Expense.prototype.calcPercentage = function (totalIncome) {
+        if (totalIncome > 0) {
+            this.percentage = Math.round((this.value / totalIncome) * 100);
+        } else {
+            this.percentage = -1;
+        }
+    };
+
+    Expense.prototype.getPercentage = function () {
+        return this.percentage;
     };
     /*
     Burada Gelirin kurucu metodunu yaptım.
@@ -76,6 +89,37 @@ let budgetController = (function () {
             //yeni oluşturulan nesnenin geri döndürülmesi
             return newItem;
         },
+        deleteItem: function (type, id) {
+            /*
+            * Burada örneğin [ 1 2 4 6 8 ] gibi biri dizimiz var
+            * biz burda örneğin id = 6 olan öğeyi silmek isteiğimizde direk olarak data.allItems[type][id]
+            * ile silemeyiz. çünkü id = 6  olan öğeyi ancak index numarasına göre silmek gerekiyor.
+            * bunun için önce gelen id nin index numarasını öğrenip ona göre silmemiz gerekir.*/
+
+            // birinci yol
+
+            data.allItems[type].forEach(function (current, index) {
+                if (id === current.id) {
+                    data.allItems[type].splice(index, 1);
+                }
+            });
+
+
+            //ikinci yol
+            /*
+            let ids, index;
+            ids = data.allItems[type].map(function (current) {
+                return current.id;
+            });
+            index = ids.indexOf(id);
+            if (index !== -1) {
+                console.log("silindi");
+                data.allItems[type].splice(index, 1);
+            }
+
+             */
+        },
+
         calculateBudget: function (type) {
             //toplam expense ve income hesaplama
             calculateTotal("exp");
@@ -91,6 +135,19 @@ let budgetController = (function () {
                 data.percentage = -1;
             }
 
+        },
+
+        calculatePercentages: function () {
+            data.allItems.exp.forEach(function (current) {
+                current.calcPercentage(data.totals.inc);
+            });
+        },
+        getPercentages: function () {
+            let allPerc = data.allItems.exp.map(function (current) {
+                return current.getPercentage();
+            });
+
+            return allPerc;
         },
 
         getBudget: function () {
@@ -132,7 +189,9 @@ let UIController = (function () {
         budgetLabel: ".budget__value",
         incomeLabel: ".budget__income--value",
         expensesLabel: ".budget__expenses--value",
-        percentageLabel: ".budget__expenses--percentage"
+        percentageLabel: ".budget__expenses--percentage",
+        container: ".container",
+        expensesPercLabel: ".item__percentage"
     };
     return {
         //return içinde yazdığımız kodları aslında  Controller modülünde erişmek için erişime açıyoruz.
@@ -175,6 +234,11 @@ let UIController = (function () {
             //newHtml DOM ekleyelim
             document.querySelector(element).insertAdjacentHTML("beforeend", newHtml);
         },
+        /*Silmek için seçtiğimiz nesneyi sildiğimiz zaman nesnenin ara yüzdende sildim.*/
+        deleteListItem: function (selectorId) {
+            let el = document.getElementById(selectorId);
+            el.parentNode.removeChild(el);
+        },
 
         clearFields: function () {
             let fields, fieldsArr;
@@ -195,6 +259,24 @@ let UIController = (function () {
                 document.querySelector(DOMStrings.percentageLabel).textContent = "---";
             }
         },
+
+        displayPercentages: function (percentages) {
+            let fields = document.querySelectorAll(DOMStrings.expensesPercLabel);
+            let nodeListForEach = function (list, callback) {
+                for (let i = 0; i < list.length ; i++) {
+                    callback(list[i], i);
+                }
+            };
+            nodeListForEach(fields, function (current, index) {
+                if (percentages[index] >0){
+                    current.textContent = percentages[index] + ' %';
+                }else{
+                    current.textContent = "---";
+                }
+
+            });
+        },
+
         /*
          DOMStrings nesnemizi controller modülünden erişmek için getDOMStrings değişkenini tanımladık.
          ve geriye DOMStrings nesnesini dönderdik.
@@ -217,6 +299,7 @@ let controller = (function (budgetCtrl, UICtrl) {
                 ctrlAddItem();
             }
         });
+        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem)
     };
 
     /*bütçeyi güncelleme metodumuz
@@ -230,6 +313,15 @@ let controller = (function (budgetCtrl, UICtrl) {
         UICtrl.displayBudget(budget);
     };
 
+
+    let updatePercentages = function () {
+        //1.yüzdeleri güncelleme
+        budgetCtrl.calculatePercentages();
+        //2.budget controllerdan yüzdeleri okuma
+        let percentages = budgetCtrl.getPercentages();
+        //3.new yüzdeleri ara yüzde güncelleme
+         UICtrl.displayPercentages(percentages);
+    };
 
     let ctrlAddItem = function () {
         let input, newItem;
@@ -248,8 +340,26 @@ let controller = (function (budgetCtrl, UICtrl) {
             UICtrl.clearFields();
             //5. bütçeyi hesapla ve güncelle
             updateBudget();
+            //6. yüzdelikleri hesapla ve güncelle
+            updatePercentages();
         }
 
+    };
+    let ctrlDeleteItem = function (event) {
+        let itemId, splitId, type, id;
+        itemId = event.target.parentNode.parentNode.parentNode.parentNode.id;
+        splitId = itemId.split('-');
+        type = splitId[0];
+        id = parseInt(splitId[1]);
+
+        //1. seçilen nesne data yapisindan silinmesi
+        budgetCtrl.deleteItem(type, id);
+        //2. silinen nesnenin arayüzden silinmesi
+        UICtrl.deleteListItem(itemId);
+        //3. yeni bütçenin hesaplanmasının güncellenmesi
+        updateBudget();
+        //4. yüzdelikleri hesapla ve güncelle
+        updatePercentages();
     };
     return {
         init: function () {
@@ -257,7 +367,7 @@ let controller = (function (budgetCtrl, UICtrl) {
             UICtrl.displayBudget({
                 budget: 0,
                 totalInc: 0,
-                totalExp: 0 ,
+                totalExp: 0,
                 percentage: -1
             });
             setupEventListeners();
