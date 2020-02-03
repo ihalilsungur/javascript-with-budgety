@@ -191,12 +191,12 @@ let UIController = (function () {
         expensesLabel: ".budget__expenses--value",
         percentageLabel: ".budget__expenses--percentage",
         container: ".container",
-        expensesPercLabel: ".item__percentage"
+        expensesPercLabel: ".item__percentage",
+        dataLabel: ".budget__title--month"
     };
 
     let formatNumber = function (num, type) {
         let numSplit, int, dec;
-        console.log(num);
         num = Math.abs(num);//num değerinin mutlak değerin aldık.
         num = num.toFixed(2);
         numSplit = num.split(".");
@@ -208,6 +208,13 @@ let UIController = (function () {
         dec = numSplit[1];
         //type === 'exp' ? sign = '-' : sign = '+';
         return (type === 'exp' ? '-' : '+') + ' ' + int + ',' + dec;
+    };
+
+
+    let nodeListForEach = function (list, callback) {
+        for (let i = 0; i < list.length; i++) {
+            callback(list[i], i);
+        }
     };
     return {
         //return içinde yazdığımız kodları aslında  Controller modülünde erişmek için erişime açıyoruz.
@@ -268,11 +275,11 @@ let UIController = (function () {
         displayBudget: function (obj) {
             let type;
 
-               obj.budget >= 0 ? type = "inc" : type = "exp";
+            obj.budget >= 0 ? type = "inc" : type = "exp";
 
-            document.querySelector(DOMStrings.budgetLabel).textContent = formatNumber(obj.budget,type);
-            document.querySelector(DOMStrings.incomeLabel).textContent = formatNumber(obj.totalInc,type);
-            document.querySelector(DOMStrings.expensesLabel).textContent = formatNumber(obj.totalExp,type);
+            document.querySelector(DOMStrings.budgetLabel).textContent = formatNumber(obj.budget, type);
+            document.querySelector(DOMStrings.incomeLabel).textContent = formatNumber(obj.totalInc, type);
+            document.querySelector(DOMStrings.expensesLabel).textContent = formatNumber(obj.totalExp, type);
             if (obj.percentage > 0) {
                 document.querySelector(DOMStrings.percentageLabel).textContent = obj.percentage + " %";
             } else {
@@ -282,11 +289,7 @@ let UIController = (function () {
 
         displayPercentages: function (percentages) {
             let fields = document.querySelectorAll(DOMStrings.expensesPercLabel);
-            let nodeListForEach = function (list, callback) {
-                for (let i = 0; i < list.length; i++) {
-                    callback(list[i], i);
-                }
-            };
+
             nodeListForEach(fields, function (current, index) {
                 if (percentages[index] > 0) {
                     current.textContent = percentages[index] + ' %';
@@ -297,6 +300,25 @@ let UIController = (function () {
             });
         },
 
+        displayMonth: function () {
+            let now, year, month, months;
+            months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+            now = new Date();
+            month = now.getMonth();
+            year = now.getFullYear();
+            document.querySelector(DOMStrings.dataLabel).textContent = months[month] + " " + year;
+        },
+        changedType: function () {
+            let fields = document.querySelectorAll(
+                DOMStrings.inputType + ',' +
+                DOMStrings.inputDescription + ',' +
+                DOMStrings.inputValue
+            );
+            nodeListForEach(fields,function (current) {
+               current.classList.toggle('red-focus');
+            });
+            document.querySelector(DOMStrings.inputButton).classList.toggle('red');
+        },
         /*
          DOMStrings nesnemizi controller modülünden erişmek için getDOMStrings değişkenini tanımladık.
          ve geriye DOMStrings nesnesini dönderdik.
@@ -319,7 +341,8 @@ let controller = (function (budgetCtrl, UICtrl) {
                 ctrlAddItem();
             }
         });
-        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem)
+        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem);
+        document.querySelector(DOM.inputType).addEventListener('change', UICtrl.changedType)
     };
 
     /*bütçeyi güncelleme metodumuz
@@ -385,6 +408,7 @@ let controller = (function (budgetCtrl, UICtrl) {
     return {
         init: function () {
             console.log("Application has started!");
+            UICtrl.displayMonth();
             UICtrl.displayBudget({
                 budget: 0,
                 totalInc: 0,
